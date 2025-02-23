@@ -6,16 +6,16 @@ import (
 	"strconv"
 )
 
-func GetKeterangan(db *sql.DB, plat string, tanggal string, jenis string) string {
+func GetKeterangan(db *sql.DB, plat string, tanggal string, jenis string) (string, error) {
 	queryPemilik := `SELECT tenggat_thn, tenggat_bln FROM data_pemilik WHERE plat = $1 AND jenis = $2`
 	var tenggatThn, tenggatBln int
 
 	err := db.QueryRow(queryPemilik, plat, jenis).Scan(&tenggatThn, &tenggatBln)
 	if err == sql.ErrNoRows {
-		return "Plat nomor tidak terdaftar"
+		return "Plat nomor tidak terdaftar", nil // Jangan return error supaya tidak gagal saat insert
 	} else if err != nil {
 		log.Printf("Error querying data_pemilik: %v", err)
-		return "Terjadi kesalahan saat validasi data"
+		return "Terjadi kesalahan saat validasi data", err
 	}
 
 	// Konversi tanggal
@@ -27,10 +27,10 @@ func GetKeterangan(db *sql.DB, plat string, tanggal string, jenis string) string
 
 	// Cek status pajak
 	if tahun > tenggatThn {
-		return "Belum bayar pajak"
+		return "Belum bayar pajak", nil
 	} else if tahun == tenggatThn && bulan > tenggatBln {
-		return "Belum bayar pajak"
+		return "Belum bayar pajak", nil
 	} else {
-		return "Sudah bayar pajak"
+		return "Sudah bayar pajak", nil
 	}
 }

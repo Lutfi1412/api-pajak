@@ -1,51 +1,34 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"backend-pajak/handlers"
 
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
-	. "github.com/tbxark/g4vercel"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
 	// Buat server G4Vercel
-	server := New()
-	server.Use(Recovery(func(err interface{}, c *Context) {
-		if httpError, ok := err.(HttpError); ok {
-			c.JSON(httpError.Status, H{
-				"message": httpError.Error(),
-			})
-		} else {
-			message := fmt.Sprintf("%s", err)
-			c.JSON(500, H{
-				"message": message,
-			})
-		}
-	}))
+	mux := http.NewServeMux()
 
 	// Gunakan metode yang tepat untuk operasi
-	server.POST("/api/insertdata", handlers.InsertData)
-	server.GET("/api/getdata", handlers.GetData)
-	server.GET("/api/getlaporan", handlers.GetLaporan)
-	server.POST("/api/getdatabyid", handlers.GetDataById)
-	server.POST("/api/updatedata", handlers.UpdateData)
-	server.POST("/api/deletedata", handlers.DeleteData)
-	server.POST("/api/deletelaporan", handlers.DeleteLaporan)
+	mux.HandleFunc("/api/insertdata", handlers.InsertData)
+	mux.HandleFunc("/api/getdata", handlers.GetData)
+	mux.HandleFunc("/api/getlaporan", handlers.GetLaporan)
+	mux.HandleFunc("/api/getdatabyid", handlers.GetDataById)
+	mux.HandleFunc("/api/updatedata", handlers.UpdateData)
+	mux.HandleFunc("/api/deletedata", handlers.DeleteData)
+	mux.HandleFunc("/api/deletelaporan", handlers.DeleteLaporan)
+	mux.HandleFunc("/api/detectplate", handlers.DetectPlate)
 
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},                                       // Domain React Anda
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // Metode yang diizinkan
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},           // Header yang diizinkan
-		AllowCredentials: true,                                                // Izinkan kredensial seperti cookies
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
 	})
-
-	// Bungkus handler utama dengan CORS
-	corsWrappedHandler := corsHandler.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		server.Handle(w, r)
-	}))
+	corsWrappedHandler := corsHandler.Handler(mux)
 	corsWrappedHandler.ServeHTTP(w, r)
 }
